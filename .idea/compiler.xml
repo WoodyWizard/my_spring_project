@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="delivery" />
+        <module name="shop" />
+        <module name="gdatabase" />
+        <module name="mydata" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="g_database" target="17" />
+      <module name="shared-data" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="delivery" options="-parameters" />
+      <module name="gdatabase" options="-parameters" />
+      <module name="mydata" options="-parameters" />
+      <module name="shared-data" options="-parameters" />
+      <module name="shop" options="-parameters" />
+    </option>
+  </component>
+</project>
