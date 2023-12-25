@@ -77,12 +77,7 @@ public class JWTService {
     }
 
     private boolean isTokenExpired(String token) {
-        if (extractExpiration(token).before(new Date())) {
-            return true;
-        } else {
-            tokenRepository.delete(tokenRepository.findByToken(token).get());
-            return false;
-        }
+        return extractExpiration(token).before(new Date());
     }
 
     private Date extractExpiration(String token) {
