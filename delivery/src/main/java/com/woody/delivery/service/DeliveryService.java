@@ -1,10 +1,12 @@
 package com.woody.delivery.service;
 
 import com.woody.delivery.repository.DeliveryRepository;
+import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.OrderValidException;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -18,65 +20,71 @@ import java.util.concurrent.ExecutionException;
 
 public class DeliveryService {
 
-    private DeliveryRepository deliveryRepository;
-    private RestTemplate restTemplate;
+    //private DeliveryRepository deliveryRepository;
+    private RestTemplate accessDB;
     private RestTemplate shopRestTemplate;
 
 
     public DeliveryService(DeliveryRepository deliveryRepository, RestTemplateBuilder restTemplateBuilder) {
-        this.deliveryRepository = deliveryRepository;
-        this.restTemplate = restTemplateBuilder.rootUri("http://localhost:8084").build();
+        //this.deliveryRepository = deliveryRepository;
+        this.accessDB = restTemplateBuilder.rootUri("http://localhost:8084").build();
         this.shopRestTemplate = restTemplateBuilder.rootUri("http://localhost:8082").build();
     }
 
+    public Order findOrderById(Long id) {
+        Order responseOrder = accessDB.getForEntity("/order/" + id + "/", Order.class).getBody();
+        if (responseOrder != null) {
+            return responseOrder;
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
 
-    public Order acceptOrder(Order order) {
-        if (order != null && order.isValid() == true) {
+
+    public Order acceptOrder(Order order) throws Exception {
+        if (order != null && order.isValid() && order.isPaid()) {
             order.setStatus("Accept Waiting");
-            deliveryRepository.save(order);
+            syncWithShop(order);
+            //saveOrderToDB(order);
+            //deliveryRepository.save(order);
             return order;
         } else {
             throw new OrderValidException();
         }
     }
 
-    public Order foundOrder(Long id) {
-        Optional<Order> orderOptional = deliveryRepository.findById(id);
-        return orderOptional.orElseThrow(() -> new NoSuchElementException());
-    }
 
     public Order deleteOrder(Long id) {
-        Optional<Order> orderOptional = deliveryRepository.findById(id);
-        if (orderOptional.isPresent()) {
-            deliveryRepository.deleteById(id);
-            return orderOptional.get();
+        ResponseEntity <Order> deletedOrder = accessDB.getForEntity("/delete/oder/" + id + "/", Order.class);
+        if (deletedOrder.getStatusCode() == HttpStatus.OK) {
+            return deletedOrder.getBody();
         } else {
             throw new NoSuchElementException();
         }
     }
 
     public Boolean checkDelivery(Long id) {
-        Order order = deliveryRepository.findById(id).get();
+        Order order = findOrderById(id);
         return order.isDelivered();
     }
 
     public Boolean checkClientAccept(Long id) {
-        Order order = deliveryRepository.findById(id).get();
+        Order order = findOrderById(id);
         return order.isClientAccept();
     }
 
     public Order finishDelivery(Long id) throws Exception {
-        Order order = deliveryRepository.findById(id).get();
-        if (order.getDeliverChecker() == true && order.getClientChecker() == true) {
+        Order order = findOrderById(id);
+        if (order.getDeliverChecker() && order.getClientChecker()) {
             order.setStatus("Finished");
-            return deliveryRepository.save(order);
+            return saveOrderToDB(order);
         } else {
             throw new Exception("Not Finished");
         }
     }
 
-    public Order saveToGDatabase(Order order) throws Exception {
-        Order responseOrder = restTemplate.postForEntity("/save", order, Order.class).getBody();
+    public Order saveOrderToDB(Order order) throws Exception {
+        Order responseOrder = accessDB.postForEntity("/save/order", order, Order.class).getBody();
         if (responseOrder != null) {
             return responseOrder;
         } else {
@@ -98,5 +106,14 @@ public class DeliveryService {
             }
         }
         throw new Exception("Sync Failed");
+    }
+
+    public Deliverer saveDelivererToDB(Deliverer deliverer) {
+        Deliverer responseDeliverer = accessDB.postForEntity("/save/deliverer", deliverer, Deliverer.class).getBody();
+        if (responseDeliverer != null) {
+            return responseDeliverer;
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 }

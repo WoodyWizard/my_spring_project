@@ -1,8 +1,10 @@
 package com.woody.delivery.controller;
 
 import com.woody.delivery.service.DeliveryService;
+import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.OrderValidException;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -22,7 +24,7 @@ public class DeliveryController {
     @GetMapping("/delivery/{id}")
     public ResponseEntity<Order> delivery(@PathVariable("id") Long id) {
         try {
-            Order order = deliveryService.foundOrder(id);
+            Order order = deliveryService.findOrderById(id);
             return ResponseEntity.ok(order);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -31,8 +33,20 @@ public class DeliveryController {
         }
     }
 
+    @PostMapping("/register/deliverer")
+    public ResponseEntity<Deliverer> registerDeliverer(@RequestBody Deliverer deliverer) {
+        try {
+            Deliverer registeredDeliverer = deliveryService.saveDelivererToDB(deliverer);
+            return ResponseEntity.ok(registeredDeliverer);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
     @PostMapping("/request/delivery")
-    public ResponseEntity<Order> createDeliveryRequest(@RequestBody Order order) {
+    public ResponseEntity<Order> createDeliveryRequest(@Valid @RequestBody Order order) {
         try {
             Order processedOrder = deliveryService.acceptOrder(order);
             deliveryService.syncWithShop(processedOrder);
@@ -49,7 +63,7 @@ public class DeliveryController {
     public ResponseEntity<Order> finishDelivery(@PathVariable("id") Long id) {
         try {
             Order order = deliveryService.finishDelivery(id);
-            Order finishedOrder = deliveryService.saveToGDatabase(order);
+            Order finishedOrder = deliveryService.saveOrderToDB(order);
             deliveryService.deleteOrder(id);
             return ResponseEntity.ok(finishedOrder);
         } catch (NoSuchElementException e) {
