@@ -1,5 +1,6 @@
 package com.woody.delivery;
 
+import com.woody.mydata.token.TokenValidationException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -8,8 +9,13 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 @SpringBootApplication
 public class DeliveryApplication {
 
+
 	public static void main(String[] args) {
-		SpringApplication.run(DeliveryApplication.class, args);
+		try {
+			SpringApplication.run(DeliveryApplication.class, args);
+		} catch (TokenValidationException e) {
+			System.exit(1);
+		}
 	}
 
 }

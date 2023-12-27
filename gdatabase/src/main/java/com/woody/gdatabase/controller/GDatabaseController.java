@@ -24,8 +24,8 @@ public class GDatabaseController {
     private AuthenticationManager authenticationManager;
 
     @GetMapping("/hello")
-    public String hello() {
-        return "hello";
+    public ResponseEntity<String> hello() {
+        return ResponseEntity.ok("Hello");
     }
 
     @PostMapping("/auth/token")
@@ -46,7 +46,7 @@ public class GDatabaseController {
     public ResponseEntity<String> validateToken(@RequestParam("token") String token) {
         try {
             gDatabaseService.validateToken(token);
-            return ResponseEntity.ok("Validation");
+            return ResponseEntity.ok("Valid");
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

@@ -4,6 +4,7 @@ import com.woody.delivery.service.DeliveryService;
 import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.OrderValidException;
+import com.woody.mydata.User;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,23 @@ import java.util.NoSuchElementException;
 public class DeliveryController {
 
     private DeliveryService deliveryService;
+
+    @GetMapping("/hello")
+    public ResponseEntity<String> hello() {
+        return ResponseEntity.ok(deliveryService.HelloOverRestTemplate());
+    }
+
+    @GetMapping("/test/user/{id}")
+    public ResponseEntity<User> testUser(@PathVariable("id") Long id) {
+        try {
+            User user = deliveryService.findUserById(id);
+            return ResponseEntity.ok(user);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
 
     @GetMapping("/delivery/{id}")
     public ResponseEntity<Order> delivery(@PathVariable("id") Long id) {

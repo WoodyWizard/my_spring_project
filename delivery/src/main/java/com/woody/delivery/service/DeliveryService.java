@@ -1,33 +1,113 @@
 package com.woody.delivery.service;
 
 import com.woody.delivery.repository.DeliveryRepository;
-import com.woody.mydata.Deliverer;
-import com.woody.mydata.Order;
-import com.woody.mydata.OrderValidException;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import org.aspectj.weaver.ast.Or;
+import com.woody.mydata.*;
+import com.woody.mydata.token.TokenValidationException;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 @Service
-
 public class DeliveryService {
 
     //private DeliveryRepository deliveryRepository;
+
+    @Autowired
     private RestTemplate accessDB;
+
+    private String token = null;
+    private HttpHeaders headers = new HttpHeaders();
+
+    private RestTemplate gdatabaseRestTemplate;
     private RestTemplate shopRestTemplate;
 
 
+    @Value("${gdatabase.username}")
+    String username;
+    @Value("${gdatabase.password}")
+    String password;
+
+
+    @PostConstruct
+    public void checkTokenAfterInit() {
+        try {
+            CheckToken();
+            System.out.println("New token generated : " + token);
+            headers.set("Authorization", "Bearer " + token);
+        } catch (Exception e) {
+            throw new TokenValidationException("Token not generated");
+        }
+    }
+
+    public Boolean CheckToken() throws Exception {
+        if (token == null) {
+            if (GenerateToken()) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            if (TokenValidation(token)) {
+                return true;
+            } else {
+                if (GenerateToken()) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    }
+
+    public Boolean TokenValidation(String token_to_check) {
+        ResponseEntity<String> response = accessDB.getForEntity("/auth/validate", String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public Boolean GenerateToken() throws Exception {
+        if (username == null || password == null) {
+            throw new Exception("Username or password not set");
+        }
+        AuthRequest authRequest = new AuthRequest(username, password);
+        ResponseEntity<String> response = accessDB.postForEntity("/auth/token", authRequest, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            token = response.getBody();
+            return true;
+        } else {
+            token = null;
+            throw new Exception("Token not generated");
+        }
+    }
+
+
+    public User findUserById(Long id) {
+        HttpEntity<User> request = new HttpEntity<>(headers);
+        User responseUser = accessDB.exchange("/user/" + id , HttpMethod.GET, request, User.class, id).getBody();
+        if (responseUser != null) {
+            return responseUser;
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public String HelloOverRestTemplate() {
+        String response = accessDB.getForEntity("/hello", String.class).getBody();
+        return response;
+    }
+
     public DeliveryService(DeliveryRepository deliveryRepository, RestTemplateBuilder restTemplateBuilder) {
         //this.deliveryRepository = deliveryRepository;
-        this.accessDB = restTemplateBuilder.rootUri("http://localhost:8084").build();
+        //this.accessDB = restTemplateBuilder.rootUri("http://localhost:8084").build();
         this.shopRestTemplate = restTemplateBuilder.rootUri("http://localhost:8082").build();
     }
 
@@ -116,4 +196,6 @@ public class DeliveryService {
             throw new NoSuchElementException();
         }
     }
+
+
 }
