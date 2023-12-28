@@ -23,31 +23,37 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
     @NotBlank
     private String firstName;
+
     @NotBlank
     private String lastName;
+
     @Basic(fetch = FetchType.LAZY)
     private String username;
+
     @Basic(fetch = FetchType.LAZY)
     @NotBlank
     private String password;
+
     @Email
     private String email;
+
     @Min(16)
     private Integer age;
 
     @ElementCollection
     @CollectionTable(name = "user_messengers", joinColumns = @JoinColumn(name = "user_id"))
     private Set<MessengerType> messengers = new HashSet();
+
     @OneToMany(mappedBy = "customer" ,cascade = CascadeType.ALL)
     @Lazy
     @JsonIgnore
     private List<Order> orders = new ArrayList();
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_authority", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "authority_id"))
-    private Set<Authority> authorities;
-
+    private Set<Authority> authorities = new HashSet();
 
 }

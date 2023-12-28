@@ -1,6 +1,8 @@
 package com.woody.gdatabase.security.service;
 
+import com.woody.gdatabase.repository.AuthorityRepository;
 import com.woody.gdatabase.repository.UserRepository;
+import com.woody.mydata.User;
 import com.woody.mydata.UserDT;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +19,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuthorityRepository authorityRepository;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional <UserDT> user = userRepository.findUsernameAndPasswordByUsername(username);
-        return user.orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        Optional <User> user = userRepository.findByUsername(username);
+
+        if (user.isEmpty()) {
+            throw new UsernameNotFoundException("User not found");
+        } else {
+            System.out.println(user.get().getAuthorities());
+            return new UserDT(user.get());
+        }
     }
+
+
 }

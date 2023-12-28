@@ -5,10 +5,12 @@ import com.woody.mydata.AuthRequest;
 import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.User;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -80,6 +82,7 @@ public class GDatabaseController {
         }
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/user/{id}")
     public ResponseEntity<User> findUserById(@PathVariable("id") Long id) {
         try {

@@ -10,6 +10,7 @@ import com.woody.mydata.User;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.NoSuchElementException;
@@ -38,6 +39,7 @@ public class GDatabaseService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
     }
