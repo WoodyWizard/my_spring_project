@@ -1,5 +1,6 @@
 package com.woody.mydata;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -10,11 +11,10 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Data
 @Getter
 @Setter
 @Table(name = "authority_entity")
-public class Authority implements GrantedAuthority {
+public class Authority {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,11 +22,6 @@ public class Authority implements GrantedAuthority {
     private String name;
 
     @ManyToMany(mappedBy = "authorities")
-    private Set<User> users;
-
-
-    @Override
-    public String getAuthority() {
-        return name;
-    }
+    @JsonIgnore
+    private List<User> users;
 }

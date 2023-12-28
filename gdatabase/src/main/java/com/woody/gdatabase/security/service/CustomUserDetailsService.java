@@ -14,7 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Component
+
+@Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
@@ -29,10 +30,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (user.isEmpty()) {
             throw new UsernameNotFoundException("User not found");
         } else {
-            System.out.println(user.get().getAuthorities());
+            //System.out.println("USER: " + " | " + user.get().getAuthorities());
             return new UserDT(user.get());
         }
     }
-
-
 }

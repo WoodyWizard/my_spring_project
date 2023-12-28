@@ -13,12 +13,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @AllArgsConstructor
-
+@EnableMethodSecurity
 public class GDatabaseController {
 
     private GDatabaseService gDatabaseService;
@@ -54,25 +55,11 @@ public class GDatabaseController {
         }
     }
 
-    @PostMapping("/save/order")
-    public ResponseEntity<Order> saveOrder(@RequestBody Order order) {
-        try {
-            return ResponseEntity.ok(gDatabaseService.saveOrder(order));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/order/{id}")
-    public ResponseEntity<Order> findOrderById(@PathVariable("id") Long id) {
-        try {
-            return ResponseEntity.ok(gDatabaseService.findOrderById(id));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 
 
+
+
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/save/user")
     public ResponseEntity<User> saveUser(@RequestBody User user) {
         try {
@@ -82,7 +69,7 @@ public class GDatabaseController {
         }
     }
 
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/user/{id}")
     public ResponseEntity<User> findUserById(@PathVariable("id") Long id) {
         try {
@@ -93,6 +80,14 @@ public class GDatabaseController {
     }
 
 
+
+
+
+
+
+
+
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/save/deliverer")
     public ResponseEntity<Deliverer> saveDeliverer(@RequestBody Deliverer deliverer) {
         try {
@@ -101,7 +96,7 @@ public class GDatabaseController {
             return ResponseEntity.badRequest().build();
         }
     }
-
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/deliverer/{id}")
     public ResponseEntity<Deliverer> findDelivererById(@PathVariable("id") Long id) {
         try {
@@ -111,6 +106,30 @@ public class GDatabaseController {
         }
     }
 
+
+
+
+
+
+    @PreAuthorize("hasAuthority('admin')")
+    @PostMapping("/save/order")
+    public ResponseEntity<Order> saveOrder(@RequestBody Order order) {
+        try {
+            return ResponseEntity.ok(gDatabaseService.saveOrder(order));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping("/order/{id}")
+    public ResponseEntity<Order> findOrderById(@PathVariable("id") Long id) {
+        try {
+            return ResponseEntity.ok(gDatabaseService.findOrderById(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    @PreAuthorize("hasAuthority('admin')")
     @DeleteMapping("/delete/order/{id}")
     public ResponseEntity<Order> deleteOrder(@PathVariable("id") Long id) {
         try {

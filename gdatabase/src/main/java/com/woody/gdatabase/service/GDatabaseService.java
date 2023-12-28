@@ -18,7 +18,6 @@ import java.util.Optional;
 
 @Service
 @AllArgsConstructor
-
 public class GDatabaseService {
 
     private OrderRepository gDatabaseRepository;
@@ -39,7 +38,6 @@ public class GDatabaseService {
         return userRepository.save(user);
     }
 
-    @Transactional
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
     }

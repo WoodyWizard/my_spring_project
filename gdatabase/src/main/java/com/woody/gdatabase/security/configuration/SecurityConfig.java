@@ -1,5 +1,7 @@
 package com.woody.gdatabase.security.configuration;
 
+import com.woody.gdatabase.repository.AuthorityRepository;
+import com.woody.gdatabase.repository.UserRepository;
 import com.woody.gdatabase.security.AuthFilter;
 import com.woody.gdatabase.security.service.CustomUserDetailsService;
 import lombok.AllArgsConstructor;

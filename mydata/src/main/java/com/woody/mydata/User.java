@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 @Entity
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -43,17 +42,16 @@ public class User {
     @Min(16)
     private Integer age;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_messengers", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<MessengerType> messengers = new HashSet();
+    private Set<MessengerType> messengers;
 
-    @OneToMany(mappedBy = "customer" ,cascade = CascadeType.ALL)
-    @Lazy
+    @OneToMany(mappedBy = "customer")
     @JsonIgnore
-    private List<Order> orders = new ArrayList();
+    private List<Order> orders;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "user_authority", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "authority_id"))
-    private Set<Authority> authorities = new HashSet();
+    @ManyToMany()
+    @JoinTable(name = "user_authority", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "authority_id", referencedColumnName = "id"))
+    private Set<Authority> authorities;
 
 }

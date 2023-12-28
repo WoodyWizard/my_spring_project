@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,8 +14,8 @@ import java.util.stream.Collectors;
 public class UserDT implements UserDetails {
 
     private final User user;
-    private String username;
-    private String password;
+    //private String username;
+    //private String password;
 
     public UserDT(User user) {
         this.user = user;

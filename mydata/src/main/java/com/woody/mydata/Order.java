@@ -5,15 +5,14 @@ import com.woody.mydata.menu.OrderItem;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "order_entity")
@@ -63,7 +62,7 @@ public class Order {
             joinColumns = @JoinColumn(name = "order_id"),
             inverseJoinColumns = @JoinColumn(name = "order_item_id")
     )
-    private List<OrderItem> items = new ArrayList<>();
+    private List<OrderItem> items;
 
     public Boolean isValid() {
         if (items.size() == 0 && customer == null && address == null && status == null && total == null && discount == null && shipping == null) {
