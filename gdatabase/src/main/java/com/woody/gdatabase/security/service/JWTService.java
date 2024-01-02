@@ -2,18 +2,23 @@ package com.woody.gdatabase.security.service;
 
 import com.woody.gdatabase.repository.TokenRepository;
 import com.woody.mydata.token.Token;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -29,6 +34,23 @@ public class JWTService {
     private Long expiration;
     @Value("${application.security.jwt.refresh-token.expiration}")
     private Long refreshTokenExpiration;
+
+    @Transactional
+    @PostConstruct
+    private void verifyAllTokens() {
+        List<Token> tokenList = tokenRepository.findAll();
+        List<Token> removeList = new ArrayList<>();
+
+        for (var token: tokenList) {
+            try {
+                validateToken(token.getToken());
+            } catch (ExpiredJwtException e) {
+                removeList.add(token);
+            }
+        }
+
+        tokenRepository.deleteAll(removeList);
+    }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
@@ -59,6 +81,7 @@ public class JWTService {
             .compact();
         Token newToken = new Token();
         newToken.setToken(token);
+        newToken.setOwner(username);
         tokenRepository.save(newToken);
         return token;
     }
@@ -76,11 +99,12 @@ public class JWTService {
         return (token_username.equals(username)) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    private boolean isTokenExpired(String token) throws ExpiredJwtException {
         return extractExpiration(token).before(new Date());
     }
 
     private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+        var a = extractClaim(token, Claims::getExpiration);
+        return a;
     }
 }

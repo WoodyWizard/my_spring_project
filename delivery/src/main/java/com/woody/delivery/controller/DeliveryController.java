@@ -82,7 +82,7 @@ public class DeliveryController {
         try {
             Order order = deliveryService.finishDelivery(id);
             Order finishedOrder = deliveryService.saveOrderToDB(order);
-            deliveryService.deleteOrder(id);
+            deliveryService.deleteOrderById(id);
             return ResponseEntity.ok(finishedOrder);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

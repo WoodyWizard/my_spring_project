@@ -13,7 +13,9 @@ public class DeliveryConfiguration {
     @Bean
     public RestTemplate sslRestTemplate(RestTemplateBuilder builder, SslBundles sslBundles) {
         SslBundle sslBundle = sslBundles.getBundle("mybundle");
-        return builder.rootUri("https://localhost:8084").setSslBundle(sslBundle).build();
+        RestTemplate restTemplate = builder.rootUri("https://localhost:8084").setSslBundle(sslBundle).build();
+        restTemplate.setErrorHandler(new CustomResponseErrorHandler());
+        return restTemplate;
     }
 
 }

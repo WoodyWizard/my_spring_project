@@ -1,9 +1,9 @@
 package com.woody.delivery.service;
 
-import com.woody.delivery.repository.DeliveryRepository;
 import com.woody.mydata.*;
 import com.woody.mydata.token.TokenValidationException;
 import jakarta.annotation.PostConstruct;
+import org.apache.catalina.connector.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -16,15 +16,10 @@ import java.util.NoSuchElementException;
 @Service
 public class DeliveryService {
 
-    //private DeliveryRepository deliveryRepository;
-
     @Autowired
     private RestTemplate accessDB;
-
     private String token = null;
     private HttpHeaders headers = new HttpHeaders();
-
-    private RestTemplate gdatabaseRestTemplate;
     private RestTemplate shopRestTemplate;
 
 
@@ -34,12 +29,18 @@ public class DeliveryService {
     String password;
 
 
+    public DeliveryService(RestTemplateBuilder restTemplateBuilder) {
+        //this.deliveryRepository = deliveryRepository;
+        //this.accessDB = restTemplateBuilder.rootUri("http://localhost:8084").build();
+        this.shopRestTemplate = restTemplateBuilder.rootUri("http://localhost:8082").build();
+    }
+
+
     @PostConstruct
     public void checkTokenAfterInit() {
         try {
             CheckToken();
             System.out.println("New token generated : " + token);
-            headers.set("Authorization", "Bearer " + token);
         } catch (Exception e) {
             throw new TokenValidationException("Token not generated");
         }
@@ -48,15 +49,18 @@ public class DeliveryService {
     public Boolean CheckToken() throws Exception {
         if (token == null) {
             if (GenerateToken()) {
+                headers.set("Authorization", "Bearer " + token);
                 return true;
             } else {
                 return false;
             }
         } else {
             if (TokenValidation(token)) {
+                headers.set("Authorization", "Bearer " + token);
                 return true;
             } else {
                 if (GenerateToken()) {
+                    headers.set("Authorization", "Bearer " + token);
                     return true;
                 } else {
                     return false;
@@ -89,42 +93,71 @@ public class DeliveryService {
         }
     }
 
-
-    public User findUserById(Long id) {
-        HttpEntity<User> request = new HttpEntity<>(headers);
-        User responseUser = accessDB.exchange("/user/" + id , HttpMethod.GET, request, User.class, id).getBody();
-        if (responseUser != null) {
-            return responseUser;
-        } else {
-            throw new NoSuchElementException();
-        }
-    }
-
     public String HelloOverRestTemplate() {
         String response = accessDB.getForEntity("/hello", String.class).getBody();
         return response;
     }
 
-    public DeliveryService(DeliveryRepository deliveryRepository, RestTemplateBuilder restTemplateBuilder) {
-        //this.deliveryRepository = deliveryRepository;
-        //this.accessDB = restTemplateBuilder.rootUri("http://localhost:8084").build();
-        this.shopRestTemplate = restTemplateBuilder.rootUri("http://localhost:8082").build();
-    }
 
-    public Order findOrderById(Long id) {
-        Order responseOrder = accessDB.getForEntity("/order/" + id + "/", Order.class).getBody();
-        if (responseOrder != null) {
-            return responseOrder;
+    public User findUserById(Long id) {
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity <User> responseUser  = accessDB.exchange("/user/" + id , HttpMethod.GET, request, User.class);
+        if (responseUser.getStatusCode() == HttpStatus.OK) {
+            return responseUser.getBody();
         } else {
             throw new NoSuchElementException();
         }
     }
 
+    public User saveUserToDB(User user) throws Exception {
+        HttpEntity<User> request = new HttpEntity<>(user, headers);
+        ResponseEntity <User> responseUser  = accessDB.exchange("/save/user" , HttpMethod.POST, request, User.class);
+        if (responseUser.getStatusCode() == HttpStatus.OK) {
+            return responseUser.getBody();
+        } else {
+            throw new Exception("Saving of User is failed");
+        }
+    }
+
+    public Order findOrderById(Long id) {
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity <Order> responseOrder = accessDB.exchange("/order/" + id , HttpMethod.GET, request, Order.class);
+        if (responseOrder.getStatusCode() == HttpStatus.OK) {
+            return responseOrder.getBody();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public Order deleteOrderById(Long id) {
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity <Order> deletedOrder = accessDB.exchange("/delete/order/" + id , HttpMethod.GET, request, Order.class);
+        if (deletedOrder.getStatusCode() == HttpStatus.OK) {
+            return deletedOrder.getBody();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public Order saveOrderToDB(Order order) throws Exception {
+        HttpEntity<Order> request = new HttpEntity<>(order, headers);
+        ResponseEntity <Order> responseOrder = accessDB.exchange("/save/order" , HttpMethod.POST, request, Order.class);
+        if (responseOrder.getStatusCode() == HttpStatus.OK) {
+            return responseOrder.getBody();
+        } else {
+            throw new Exception("Saving of Order is Failed");
+        }
+    }
+
+
+
+
 
     public Order acceptOrder(Order order) throws Exception {
         if (order != null && order.isValid() && order.isPaid()) {
             order.setStatus("Accept Waiting");
-            syncWithShop(order);
+            saveOrderToDB(order);
+            //syncWithShop(order);
             //saveOrderToDB(order);
             //deliveryRepository.save(order);
             return order;
@@ -134,14 +167,7 @@ public class DeliveryService {
     }
 
 
-    public Order deleteOrder(Long id) {
-        ResponseEntity <Order> deletedOrder = accessDB.getForEntity("/delete/oder/" + id + "/", Order.class);
-        if (deletedOrder.getStatusCode() == HttpStatus.OK) {
-            return deletedOrder.getBody();
-        } else {
-            throw new NoSuchElementException();
-        }
-    }
+
 
     public Boolean checkDelivery(Long id) {
         Order order = findOrderById(id);
@@ -163,14 +189,7 @@ public class DeliveryService {
         }
     }
 
-    public Order saveOrderToDB(Order order) throws Exception {
-        Order responseOrder = accessDB.postForEntity("/save/order", order, Order.class).getBody();
-        if (responseOrder != null) {
-            return responseOrder;
-        } else {
-            throw new Exception("Save Failed");
-        }
-    }
+
 
     public Order syncWithShop(Order order) throws Exception { // it's need to implement retry operation with able to cancel transaction
         HttpHeaders headers = new HttpHeaders();
@@ -189,9 +208,30 @@ public class DeliveryService {
     }
 
     public Deliverer saveDelivererToDB(Deliverer deliverer) {
-        Deliverer responseDeliverer = accessDB.postForEntity("/save/deliverer", deliverer, Deliverer.class).getBody();
-        if (responseDeliverer != null) {
-            return responseDeliverer;
+        HttpEntity<Deliverer> request = new HttpEntity<>(deliverer, headers);
+        ResponseEntity <Deliverer> responseDeliverer = accessDB.exchange("/save/deliverer", HttpMethod.POST, request, Deliverer.class);
+        if (responseDeliverer.getStatusCode() == HttpStatus.OK) {
+            return responseDeliverer.getBody();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public Deliverer getDelivererById(Long id) {
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity <Deliverer> responseDeliverer = accessDB.exchange("/deliverer/" + id, HttpMethod.GET, request, Deliverer.class);
+        if (responseDeliverer.getStatusCode() == HttpStatus.OK) {
+            return responseDeliverer.getBody();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public Deliverer deleteDelivererById(Long id) {
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity <Deliverer> responseDeliverer = accessDB.exchange("/delete/deliverer/" + id, HttpMethod.GET, request, Deliverer.class);
+        if (responseDeliverer.getStatusCode() == HttpStatus.OK) {
+            return responseDeliverer.getBody();
         } else {
             throw new NoSuchElementException();
         }

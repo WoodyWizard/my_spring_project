@@ -22,6 +22,10 @@ public class Deliverer {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     @NotBlank
+    private String username;
+    @NotBlank
+    private String password;
+    @NotBlank
     private String name;
     @Email
     private String email;
