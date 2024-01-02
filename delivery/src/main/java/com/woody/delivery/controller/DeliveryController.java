@@ -22,10 +22,10 @@ public class DeliveryController {
 
     private DeliveryService deliveryService;
 
-    @GetMapping("/hello")
+/*    @GetMapping("/hello")
     public ResponseEntity<String> hello() {
         return ResponseEntity.ok(deliveryService.HelloOverRestTemplate());
-    }
+    }*/
 
     @GetMapping("/test/user/{id}")
     public ResponseEntity<User> testUser(@PathVariable("id") Long id) {
@@ -51,8 +51,13 @@ public class DeliveryController {
         }
     }
 
-    @PostMapping("/register/deliverer")
-    public ResponseEntity<Deliverer> registerDeliverer(@RequestBody Deliverer deliverer) {
+
+
+
+
+
+    @PostMapping("/save/deliverer")
+    public ResponseEntity<Deliverer> registerDeliverer(@Valid @RequestBody Deliverer deliverer) {
         try {
             Deliverer registeredDeliverer = deliveryService.saveDelivererToDB(deliverer);
             return ResponseEntity.ok(registeredDeliverer);
@@ -63,11 +68,45 @@ public class DeliveryController {
         }
     }
 
+    @GetMapping("/deliverer/{id}")
+    public ResponseEntity<Deliverer> deliverer(@PathVariable("id") Long id) {
+        try {
+            Deliverer deliverer = deliveryService.getDelivererById(id);
+            return ResponseEntity.ok(deliverer);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
+    @DeleteMapping("/delete/deliverer/{id}")
+    public ResponseEntity<Deliverer> deleteDeliverer(@PathVariable("id") Long id) {
+        try {
+            Deliverer deliverer = deliveryService.deleteDelivererById(id);
+            return ResponseEntity.ok(deliverer);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
     @PostMapping("/request/delivery")
     public ResponseEntity<Order> createDeliveryRequest(@Valid @RequestBody Order order) {
         try {
             Order processedOrder = deliveryService.acceptOrder(order);
-            deliveryService.syncWithShop(processedOrder);
+            deliveryService.saveOrderToDB(processedOrder);
             return ResponseEntity.ok(processedOrder);
         } catch (OrderValidException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -81,9 +120,7 @@ public class DeliveryController {
     public ResponseEntity<Order> finishDelivery(@PathVariable("id") Long id) {
         try {
             Order order = deliveryService.finishDelivery(id);
-            Order finishedOrder = deliveryService.saveOrderToDB(order);
-            deliveryService.deleteOrderById(id);
-            return ResponseEntity.ok(finishedOrder);
+            return ResponseEntity.ok(order);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {

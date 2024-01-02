@@ -93,10 +93,39 @@ public class DeliveryService {
         }
     }
 
-    public String HelloOverRestTemplate() {
+
+
+    public Boolean checkDelivery(Long id) {
+        Order order = findOrderById(id);
+        return order.isDelivered();
+    }
+
+    public Boolean checkClientAccept(Long id) {
+        Order order = findOrderById(id);
+        return order.isClientAccept();
+    }
+
+    public Order acceptOrder(Order order) throws Exception {
+        if (order != null && order.isValid() && order.isPaid()) {
+            order.setStatus("Accept Waiting");
+            return order;
+        } else {
+            throw new OrderValidException();
+        }
+    }
+
+    public Order finishDelivery(Long id) throws Exception {
+            Order order = findOrderById(id);
+            order.setDeliverChecker(true);
+            order.setStatus("Waiting for user's finish-accept");
+            return saveOrderToDB(order);
+    }
+
+
+/*    public String HelloOverRestTemplate() {
         String response = accessDB.getForEntity("/hello", String.class).getBody();
         return response;
-    }
+    }*/
 
 
     public User findUserById(Long id) {
@@ -109,7 +138,7 @@ public class DeliveryService {
         }
     }
 
-    public User saveUserToDB(User user) throws Exception {
+/*    public User saveUserToDB(User user) throws Exception {
         HttpEntity<User> request = new HttpEntity<>(user, headers);
         ResponseEntity <User> responseUser  = accessDB.exchange("/save/user" , HttpMethod.POST, request, User.class);
         if (responseUser.getStatusCode() == HttpStatus.OK) {
@@ -118,6 +147,27 @@ public class DeliveryService {
             throw new Exception("Saving of User is failed");
         }
     }
+
+    public User deleteUserById(Long id) {
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity <User> deletedUser = accessDB.exchange("/delete/user/" + id , HttpMethod.DELETE, request, User.class);
+        if (deletedUser.getStatusCode() == HttpStatus.OK) {
+            return deletedUser.getBody();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }*/
+
+
+
+
+
+
+
+
+
+
+
 
     public Order findOrderById(Long id) {
         HttpEntity<Void> request = new HttpEntity<>(headers);
@@ -129,15 +179,15 @@ public class DeliveryService {
         }
     }
 
-    public Order deleteOrderById(Long id) {
+/*    public Order deleteOrderById(Long id) {
         HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity <Order> deletedOrder = accessDB.exchange("/delete/order/" + id , HttpMethod.GET, request, Order.class);
+        ResponseEntity <Order> deletedOrder = accessDB.exchange("/delete/order/" + id , HttpMethod.DELETE, request, Order.class);
         if (deletedOrder.getStatusCode() == HttpStatus.OK) {
             return deletedOrder.getBody();
         } else {
             throw new NoSuchElementException();
         }
-    }
+    }*/
 
     public Order saveOrderToDB(Order order) throws Exception {
         HttpEntity<Order> request = new HttpEntity<>(order, headers);
@@ -153,45 +203,18 @@ public class DeliveryService {
 
 
 
-    public Order acceptOrder(Order order) throws Exception {
-        if (order != null && order.isValid() && order.isPaid()) {
-            order.setStatus("Accept Waiting");
-            saveOrderToDB(order);
-            //syncWithShop(order);
-            //saveOrderToDB(order);
-            //deliveryRepository.save(order);
-            return order;
-        } else {
-            throw new OrderValidException();
-        }
-    }
 
 
 
 
-    public Boolean checkDelivery(Long id) {
-        Order order = findOrderById(id);
-        return order.isDelivered();
-    }
-
-    public Boolean checkClientAccept(Long id) {
-        Order order = findOrderById(id);
-        return order.isClientAccept();
-    }
-
-    public Order finishDelivery(Long id) throws Exception {
-        Order order = findOrderById(id);
-        if (order.getDeliverChecker() && order.getClientChecker()) {
-            order.setStatus("Finished");
-            return saveOrderToDB(order);
-        } else {
-            throw new Exception("Not Finished");
-        }
-    }
 
 
 
-    public Order syncWithShop(Order order) throws Exception { // it's need to implement retry operation with able to cancel transaction
+
+
+
+
+/*    public Order syncWithShop(Order order) throws Exception { // it's need to implement retry operation with able to cancel transaction
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -205,7 +228,9 @@ public class DeliveryService {
             }
         }
         throw new Exception("Sync Failed");
-    }
+    }*/
+
+
 
     public Deliverer saveDelivererToDB(Deliverer deliverer) {
         HttpEntity<Deliverer> request = new HttpEntity<>(deliverer, headers);
@@ -229,7 +254,7 @@ public class DeliveryService {
 
     public Deliverer deleteDelivererById(Long id) {
         HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity <Deliverer> responseDeliverer = accessDB.exchange("/delete/deliverer/" + id, HttpMethod.GET, request, Deliverer.class);
+        ResponseEntity <Deliverer> responseDeliverer = accessDB.exchange("/delete/deliverer/" + id, HttpMethod.DELETE, request, Deliverer.class);
         if (responseDeliverer.getStatusCode() == HttpStatus.OK) {
             return responseDeliverer.getBody();
         } else {

@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,6 +17,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.NoSuchElementException;
 
 @RestController
 @AllArgsConstructor
@@ -65,7 +68,7 @@ public class GDatabaseController {
         try {
             return ResponseEntity.ok(gDatabaseService.saveUser(user));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
 
@@ -74,8 +77,23 @@ public class GDatabaseController {
     public ResponseEntity<User> findUserById(@PathVariable("id") Long id) {
         try {
             return ResponseEntity.ok(gDatabaseService.getUserById(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @DeleteMapping("/delete/user/{id}")
+    public ResponseEntity<User> deleteUser(@PathVariable("id") Long id) {
+        try {
+            User user = gDatabaseService.deleteUserById(id);
+            return ResponseEntity.ok().body(user);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
         }
     }
 
@@ -93,7 +111,7 @@ public class GDatabaseController {
         try {
             return ResponseEntity.ok(gDatabaseService.saveDeliverer(deliverer));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
     @PreAuthorize("hasAuthority('admin')")
@@ -101,8 +119,22 @@ public class GDatabaseController {
     public ResponseEntity<Deliverer> findDelivererById(@PathVariable("id") Long id) {
         try {
             return ResponseEntity.ok(gDatabaseService.getDelivererById(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @DeleteMapping("/delete/deliverer/{id}")
+    public ResponseEntity<Deliverer> deleteDeliverer(@PathVariable("id") Long id) {
+        try {
+            return ResponseEntity.ok(gDatabaseService.deleteDelivererById(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 
@@ -117,7 +149,7 @@ public class GDatabaseController {
         try {
             return ResponseEntity.ok(gDatabaseService.saveOrder(order));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
     @PreAuthorize("hasAuthority('admin')")
@@ -125,8 +157,10 @@ public class GDatabaseController {
     public ResponseEntity<Order> findOrderById(@PathVariable("id") Long id) {
         try {
             return ResponseEntity.ok(gDatabaseService.findOrderById(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
     @PreAuthorize("hasAuthority('admin')")
@@ -134,8 +168,10 @@ public class GDatabaseController {
     public ResponseEntity<Order> deleteOrder(@PathVariable("id") Long id) {
         try {
             return ResponseEntity.ok(gDatabaseService.deleteOrder(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
 

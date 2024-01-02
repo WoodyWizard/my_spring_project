@@ -33,7 +33,8 @@ public class Deliverer {
     private String phone;
     @Min(18)
     private Integer age;
-    private Float rating;
+    private Double balance = 0.0;
+    private Double rating = 0.0;
     @OneToMany(mappedBy = "deliverer")
     private Set<Order> orders;
 

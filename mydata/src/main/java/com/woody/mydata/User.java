@@ -42,6 +42,8 @@ public class User {
     @Min(16)
     private Integer age;
 
+    private Double balance = 0.0;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_messengers", joinColumns = @JoinColumn(name = "user_id"))
     private Set<MessengerType> messengers;

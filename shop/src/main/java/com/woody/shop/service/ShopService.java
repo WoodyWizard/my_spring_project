@@ -1,10 +1,12 @@
 package com.woody.shop.service;
 
 import com.woody.mydata.AuthRequest;
+import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.User;
 import com.woody.mydata.token.TokenValidationException;
 import jakarta.annotation.PostConstruct;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -89,7 +91,21 @@ public class ShopService {
         }
     }
 
-    public Order findOrderById(Long id) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public Order findOrderById(Long id) throws Exception {
         HttpEntity<Void> request = new HttpEntity<>(headers);
         ResponseEntity <Order> responseOrder = accessDB.exchange("/order/" + id , HttpMethod.GET, request, Order.class);
         if (responseOrder.getStatusCode() == HttpStatus.OK) {
@@ -99,9 +115,9 @@ public class ShopService {
         }
     }
 
-    public Order deleteOrderById(Long id) {
+    public Order deleteOrderById(Long id) throws Exception {
         HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity <Order> deletedOrder = accessDB.exchange("/delete/order/" + id , HttpMethod.GET, request, Order.class);
+        ResponseEntity <Order> deletedOrder = accessDB.exchange("/delete/order/" + id , HttpMethod.DELETE, request, Order.class);
         if (deletedOrder.getStatusCode() == HttpStatus.OK) {
             return deletedOrder.getBody();
         } else {
@@ -126,7 +142,7 @@ public class ShopService {
 
 
 
-    public User findUserById(Long id) {
+    public User findUserById(Long id) throws Exception {
         HttpEntity<Void> request = new HttpEntity<>(headers);
         ResponseEntity <User> responseUser  = accessDB.exchange("/user/" + id , HttpMethod.GET, request, User.class);
         if (responseUser.getStatusCode() == HttpStatus.OK) {
@@ -146,13 +162,74 @@ public class ShopService {
         }
     }
 
-    public User deleteUserById(Long id) {
+    public User deleteUserById(Long id) throws Exception {
         HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity <User> deletedUser = accessDB.exchange("/delete/user/" + id , HttpMethod.GET, request, User.class);
+        ResponseEntity <User> deletedUser = accessDB.exchange("/delete/user/" + id , HttpMethod.DELETE, request, User.class);
         if (deletedUser.getStatusCode() == HttpStatus.OK) {
             return deletedUser.getBody();
         } else {
             throw new NoSuchElementException();
         }
     }
+
+
+
+
+
+    public Order requestPayment(Order order) throws Exception {
+        if (order.getPaymentStatus() != "Paid" && order.getCustomer().getBalance() >= order.getTotal()) {
+            order.getCustomer().setBalance(order.getCustomer().getBalance() - order.getTotal());
+            order.setPaymentStatus("Paid");
+            ResponseEntity<Order> response = accessDB.exchange("/save/order", HttpMethod.POST, new HttpEntity<>(order, headers), Order.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return response.getBody();
+            } else {
+                throw new Exception("Internal server error");
+            }
+        } else {
+            throw new Exception("Balance is not enough");
+
+        }
+    }
+
+
+
+
+
+    public Order requestDelivery(Order order) throws Exception {
+        if (order.getPaymentStatus() == "Paid") {
+            ResponseEntity<Order> response = deliveryRestTemplate.exchange("/request/delivery", HttpMethod.POST, new HttpEntity<>(order, headers), Order.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return response.getBody();
+            } else {
+                throw new NoSuchElementException();
+            }
+        } else {
+            throw new Exception("Waiting for Payment");
+        }
+    }
+
+    public Order acceptDelivery(Long id) throws Exception {
+        Order order = findOrderById(id);
+        if (order.getDeliverChecker()) {
+            order.setClientChecker(true);
+            order.setStatus("Finished");
+
+            Deliverer deliverer = order.getDeliverer();
+            deliverer.setBalance(deliverer.getBalance() + order.getShipping());
+
+            ResponseEntity <Deliverer> response = deliveryRestTemplate.exchange("/save/deliverer", HttpMethod.POST, new HttpEntity<>(deliverer, headers), Deliverer.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return saveOrderToDB(order);
+            } else {
+                throw new Exception("Payment error");
+            }
+        } else {
+            throw new Exception("Not Finished");
+        }
+    }
+
+
+
+
 }

@@ -26,30 +26,74 @@ public class GDatabaseService {
     private JWTService jwtService;
 
 
-    public Order saveOrder(Order order) {
-        return gDatabaseRepository.save(order);
-    }
 
-    public Order findOrderById(Long id) {
-        return gDatabaseRepository.findById(id).orElseThrow(() -> new RuntimeException("Order not found"));
-    }
+
+
+
+
+
+
+
 
     public User saveUser(User user) {
         return userRepository.save(user);
     }
-
     public User getUserById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        Optional<User> userOptional = userRepository.findById(id);
+        if (userOptional.isPresent()) {
+            return userOptional.get();
+        } else {
+            throw new NoSuchElementException();
+        }
     }
+    public User deleteUserById(Long id) {
+        Optional<User> userOptional = userRepository.findById(id);
+        if (userOptional.isPresent()) {
+            userRepository.deleteById(id);
+            return userOptional.get();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+
+
+
+
+
+
 
     public Deliverer saveDeliverer(Deliverer deliverer) {
         return delivererRepository.save(deliverer);
     }
-
     public Deliverer getDelivererById(Long id) {
         return delivererRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
     }
+    public Deliverer deleteDelivererById(Long id) {
+        Optional<Deliverer> delivererOptional = delivererRepository.findById(id);
+        if (delivererOptional.isPresent()) {
+            delivererRepository.deleteById(id);
+            return delivererOptional.get();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
 
+
+
+
+
+    public Order findOrderById(Long id) {
+        Optional<Order> orderOptional = gDatabaseRepository.findById(id);
+        if (orderOptional.isPresent()) {
+            return orderOptional.get();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+    public Order saveOrder(Order order) {
+        return gDatabaseRepository.save(order);
+    }
     public Order deleteOrder(Long id) {
         Optional<Order> orderOptional = gDatabaseRepository.findById(id);
         if (orderOptional.isPresent()) {
@@ -61,6 +105,12 @@ public class GDatabaseService {
     }
 
 
+
+
+
+
+
+
     public String generateToken(String username) {
         return jwtService.generateToken(new HashMap<>() , username);
     }
@@ -68,4 +118,6 @@ public class GDatabaseService {
     public void validateToken(String token) {
         jwtService.validateToken(token);
     }
+
+
 }
