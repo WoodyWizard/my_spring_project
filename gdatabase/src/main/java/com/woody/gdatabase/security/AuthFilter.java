@@ -4,6 +4,7 @@ import com.woody.gdatabase.repository.TokenRepository;
 import com.woody.gdatabase.security.service.CustomUserDetailsService;
 import com.woody.gdatabase.security.service.JWTService;
 import com.woody.mydata.UserDT;
+import com.woody.mydata.token.Token;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,7 +12,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +27,7 @@ import java.io.IOException;
 
 @Component
 @AllArgsConstructor
+@Slf4j
 public class AuthFilter extends OncePerRequestFilter {
 
 
@@ -37,9 +42,10 @@ public class AuthFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        log.info("Auth Filter [Started]");
         final String authorizationHeader = request.getHeader("Authorization");
-        final String jwtToken;
-        final String username;
+        String jwtToken;
+        String username = null;
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -48,36 +54,71 @@ public class AuthFilter extends OncePerRequestFilter {
 
         jwtToken = authorizationHeader.substring(7);
 
-        try {
-            username = jwtService.extractUsername(jwtToken);
-        } catch (ExpiredJwtException e) {
-            if (tokenRepository.findByToken(jwtToken).isPresent()) {
-                tokenRepository.delete(tokenRepository.findByToken(jwtToken).get());
+        if (!tokenRepository.findByToken(jwtToken).isPresent()) {
+            log.error("Token is not present in database");
+            response.addHeader("JWT_ERROR", jwtToken);
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            log.info("Sending 403 Response");
+        } else if (tokenRepository.findByToken(jwtToken).get().isExpired() &&
+                   tokenRepository.findByToken(jwtToken).get().isRevoked() ){
+            log.error("Token is not valid");
+            response.addHeader("JWT_ERROR", jwtToken);
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            log.info("Sending 403 Response");
+        } else {
+            log.info("Token are valid and present in database");
+            try {
+                log.info("Starting authentication");
+                username = jwtService.extractUsername(jwtToken);
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    log.info("Username extraction");
+                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                    log.info("User Details: ", userDetails);
+                    var isTokenValid = tokenRepository.findByToken(jwtToken)
+                            .map(t -> !t.isExpired() && !t.isRevoked())
+                            .orElse(false);
+                    if (jwtService.isTokenValid(jwtToken, userDetails.getUsername().toLowerCase()) && isTokenValid) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+                        log.info("authtoken Setting details");
+                        authToken.setDetails(
+                                new WebAuthenticationDetailsSource().buildDetails(request)
+                        );
+                        log.info("Security Context setting authentication");
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                }
+                log.info("JWT authentication passed");
+                log.info("Authentication [End]");
+                filterChain.doFilter(request, response);
+            } catch (ExpiredJwtException e) {
+                log.error("ExpiredJwtException : ", jwtToken);
+                Token corrupted_token = tokenRepository.findByToken(jwtToken).get();
+                log.info("Setting token as expired");
+                corrupted_token.setExpired(true);
+                corrupted_token.setRevoked(true);
+                log.info("Saving token to database");
+                tokenRepository.save(corrupted_token);
+
+                log.info("Sending 403 Response");
+                response.addHeader("JWT_ERROR", jwtToken);
+                response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                log.info("Sending 403 Response");
+            } catch (ObjectOptimisticLockingFailureException ex) {
+                log.error("ObjectOptimisticLockingFailureException");
+                response.addHeader("JWT_ERROR", jwtToken);
+                response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                log.info("Sending 403 Response");
             }
-            filterChain.doFilter(request, response);
-            return;
-        }
 
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-            System.out.println(userDetails.getAuthorities());
-            var isTokenValid = tokenRepository.findByToken(jwtToken)
-                    .map(t -> !t.isExpired() && !t.isRevoked())
-                    .orElse(false);
-            if (jwtService.isTokenValid(jwtToken, userDetails.getUsername().toLowerCase()) && isTokenValid) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+
         }
-        filterChain.doFilter(request, response);
+
+        log.info("Auth Filter [[End]]");
 
 
     }

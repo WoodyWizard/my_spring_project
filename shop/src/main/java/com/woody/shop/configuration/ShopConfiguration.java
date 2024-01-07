@@ -10,7 +10,7 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class ShopConfiguration
 {
-        @Bean
+        @Bean(name = "DatabaseRest")
         public RestTemplate sslRestTemplate(RestTemplateBuilder builder, SslBundles sslBundles) {
             SslBundle sslBundle = sslBundles.getBundle("mybundle");
             RestTemplate restTemplate = builder.rootUri("https://localhost:8084").setSslBundle(sslBundle).build();
@@ -18,4 +18,10 @@ public class ShopConfiguration
             return restTemplate;
         }
 
+        @Bean(name = "TokenDatabaseRest")
+        public RestTemplate tokenRestTemplate(RestTemplateBuilder builder, SslBundles sslBundles) {
+            SslBundle sslBundle = sslBundles.getBundle("mybundle");
+            RestTemplate restTemplate = builder.rootUri("https://localhost:8084").setSslBundle(sslBundle).build();
+            return restTemplate;
+        }
 }

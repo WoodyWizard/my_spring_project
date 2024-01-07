@@ -1,28 +1,34 @@
 package com.woody.gdatabase.service;
 
 import com.woody.gdatabase.repository.DelivererRepository;
+import com.woody.gdatabase.repository.ItemRepository;
 import com.woody.gdatabase.repository.OrderRepository;
 import com.woody.gdatabase.repository.UserRepository;
 import com.woody.gdatabase.security.service.JWTService;
 import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.User;
+import com.woody.mydata.menu.OrderItem;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class GDatabaseService {
 
     private OrderRepository gDatabaseRepository;
     private UserRepository userRepository;
     private DelivererRepository delivererRepository;
+    private ItemRepository itemRepository;
     private JWTService jwtService;
 
 
@@ -41,8 +47,10 @@ public class GDatabaseService {
     public User getUserById(Long id) {
         Optional<User> userOptional = userRepository.findById(id);
         if (userOptional.isPresent()) {
+            log.info("Successful operation of getting user");
             return userOptional.get();
         } else {
+            log.error("Error: Get user from database");
             throw new NoSuchElementException();
         }
     }
@@ -50,8 +58,10 @@ public class GDatabaseService {
         Optional<User> userOptional = userRepository.findById(id);
         if (userOptional.isPresent()) {
             userRepository.deleteById(id);
+            log.info("Successful Operation of deleting User from Database");
             return userOptional.get();
         } else {
+            log.error("Error: Delete user from database");
             throw new NoSuchElementException();
         }
     }
@@ -73,8 +83,10 @@ public class GDatabaseService {
         Optional<Deliverer> delivererOptional = delivererRepository.findById(id);
         if (delivererOptional.isPresent()) {
             delivererRepository.deleteById(id);
+            log.info("Successful Operation of deleting deliverer from database");
             return delivererOptional.get();
         } else {
+            log.error("Error: Delete deliverer from database");
             throw new NoSuchElementException();
         }
     }
@@ -86,8 +98,10 @@ public class GDatabaseService {
     public Order findOrderById(Long id) {
         Optional<Order> orderOptional = gDatabaseRepository.findById(id);
         if (orderOptional.isPresent()) {
+            log.info("Order has been found");
             return orderOptional.get();
         } else {
+            log.error("Error: Get Order from database");
             throw new NoSuchElementException();
         }
     }
@@ -98,8 +112,10 @@ public class GDatabaseService {
         Optional<Order> orderOptional = gDatabaseRepository.findById(id);
         if (orderOptional.isPresent()) {
             gDatabaseRepository.deleteById(id);
+            log.info("Successful operation of Deleting order from database");
             return orderOptional.get();
         } else {
+            log.error("Error: Delete Order from database");
             throw new NoSuchElementException();
         }
     }
@@ -119,5 +135,27 @@ public class GDatabaseService {
         jwtService.validateToken(token);
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+    public List<OrderItem> getRecordsForSlider() {
+        List <OrderItem> orderItems = itemRepository.findRandomFourEntities();
+        System.out.println(orderItems);
+        if (orderItems.size() < 4 && orderItems.isEmpty()) {
+            log.error("Error: get 4 entities for slider (from database)");
+            throw new NoSuchElementException();
+        }
+        log.info("Returning 4 entities from database");
+        return orderItems;
+    }
 
 }
