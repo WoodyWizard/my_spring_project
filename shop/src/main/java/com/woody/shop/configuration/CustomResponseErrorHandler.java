@@ -43,8 +43,8 @@ public class CustomResponseErrorHandler implements ResponseErrorHandler {
                 log.info("Token generation");
                 tokenService.CheckTokenOrGenerate();
             } else {
-                log.info("Sending error to another ResponseErrorHandler");
-                errorHandler.handleError(response);
+                log.error("Sending error to another ResponseErrorHandler [DISCONNECT FOR NOW]");
+                //errorHandler.handleError(response);
             }
         } catch (Exception e) {
             log.error("Attempt to generate token is failed : ", e);

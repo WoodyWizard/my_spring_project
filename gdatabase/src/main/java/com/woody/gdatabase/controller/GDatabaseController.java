@@ -48,7 +48,7 @@ public class GDatabaseController {
                 return ResponseEntity.ok(gDatabaseService.generateToken(authRequest.getUsername()));
             } else {
                 log.error(" /auth/token : error of authentication");
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body("Error of authentication");
             }
         } catch (Exception e) {
             log.error(" /auth/token : Exception");

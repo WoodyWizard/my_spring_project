@@ -195,4 +195,14 @@ public class ShopService {
     }
 
 
+    public String loginRequest(AuthRequest authRequest) {
+        HttpEntity<AuthRequest> request = new HttpEntity<>(authRequest, tokenService.getHeaders());
+        ResponseEntity <String> responseToken  = accessDB.exchange("/auth/token" , HttpMethod.POST, request, String.class);
+        if (responseToken.getStatusCode() == HttpStatus.OK) {
+            //System.out.println("token new: " + responseToken.getBody());
+            return responseToken.getBody();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
 }

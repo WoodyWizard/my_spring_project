@@ -1,6 +1,7 @@
 package com.woody.shop.controller;
 
 
+import com.woody.mydata.AuthRequest;
 import com.woody.mydata.Order;
 import com.woody.mydata.User;
 import com.woody.mydata.menu.OrderItem;
@@ -23,6 +24,24 @@ import java.util.NoSuchElementException;
 public class ShopController {
 
     private ShopService shopService;
+
+
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@Valid @RequestBody AuthRequest authRequest) {
+        try {
+            log.info("Login operation started");
+            return ResponseEntity.ok().body(shopService.loginRequest(authRequest));
+        } catch (NoSuchElementException e) {
+            log.error("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Something went wrong");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
+
 
     @GetMapping("/user/{id}")
     public ResponseEntity<User> getUserById(@PathVariable("id") Long id) {
