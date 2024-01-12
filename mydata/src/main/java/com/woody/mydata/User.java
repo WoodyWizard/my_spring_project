@@ -1,6 +1,7 @@
 package com.woody.mydata;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.woody.mydata.menu.OrderItem;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -9,6 +10,7 @@ import lombok.*;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import java.io.Serializable;
 import java.util.*;
 
 @Entity
@@ -16,8 +18,9 @@ import java.util.*;
 @NoArgsConstructor
 @Getter
 @Setter
+@ToString
 @Table(name = "user_entity")
-public class User {
+public class User implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -29,10 +32,9 @@ public class User {
     @NotBlank
     private String lastName;
 
-    @Basic(fetch = FetchType.LAZY)
+    @NotBlank
     private String username;
 
-    @Basic(fetch = FetchType.LAZY)
     @NotBlank
     private String password;
 
@@ -52,7 +54,17 @@ public class User {
     @JsonIgnore
     private List<Order> orders;
 
+    @ManyToMany
+    @JsonIgnore
+    @JoinTable(
+            name = "user_cart",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "item_id")
+    )
+    private List<OrderItem> cart;
+
     @ManyToMany()
+    @JsonIgnore
     @JoinTable(name = "user_authority", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "authority_id", referencedColumnName = "id"))
     private Set<Authority> authorities;
 

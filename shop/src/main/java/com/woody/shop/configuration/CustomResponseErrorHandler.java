@@ -3,6 +3,8 @@ package com.woody.shop.configuration;
 import com.woody.mydata.token.TokenValidationException;
 import com.woody.shop.service.ShopService;
 import com.woody.shop.service.TokenService;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -16,6 +18,7 @@ import org.springframework.web.client.ResponseErrorHandler;
 import java.io.IOException;
 
 @Service
+@AllArgsConstructor
 @Slf4j
 public class CustomResponseErrorHandler implements ResponseErrorHandler {
 
@@ -23,10 +26,6 @@ public class CustomResponseErrorHandler implements ResponseErrorHandler {
 
     @Autowired
     private TokenService tokenService;
-
-
-
-
 
     @Override
     public boolean hasError(ClientHttpResponse response) throws IOException {

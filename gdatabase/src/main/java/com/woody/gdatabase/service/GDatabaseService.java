@@ -4,14 +4,17 @@ import com.woody.gdatabase.repository.DelivererRepository;
 import com.woody.gdatabase.repository.ItemRepository;
 import com.woody.gdatabase.repository.OrderRepository;
 import com.woody.gdatabase.repository.UserRepository;
+import com.woody.gdatabase.security.service.CustomUserDetailsService;
 import com.woody.gdatabase.security.service.JWTService;
 import com.woody.mydata.Deliverer;
 import com.woody.mydata.Order;
 import com.woody.mydata.User;
+import com.woody.mydata.UserDT;
 import com.woody.mydata.menu.OrderItem;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,7 @@ public class GDatabaseService {
     private DelivererRepository delivererRepository;
     private ItemRepository itemRepository;
     private JWTService jwtService;
+    private CustomUserDetailsService customUserDetailsService;
 
 
 
@@ -39,7 +43,9 @@ public class GDatabaseService {
 
 
 
-
+    public UserDT getUserDetailsByUsername(String username) {
+        return (UserDT) customUserDetailsService.loadUserByUsername(username);
+    }
 
     public User saveUser(User user) {
         return userRepository.save(user);
@@ -53,6 +59,10 @@ public class GDatabaseService {
             log.error("Error: Get user from database");
             throw new NoSuchElementException();
         }
+    }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
     }
     public User deleteUserById(Long id) {
         Optional<User> userOptional = userRepository.findById(id);
@@ -127,15 +137,29 @@ public class GDatabaseService {
 
 
 
-    public String generateToken(String username) {
-        return jwtService.generateToken(new HashMap<>() , username);
+    public String generateToken(String username, UserDT userDT) {
+        log.info("Generating token");
+        return jwtService.generateToken(new HashMap<>() , username, userDT.getAuthorities());
     }
 
-    public void validateToken(String token) {
+    public void validateToken(String token) throws Exception {
         jwtService.validateToken(token);
     }
 
+    public String extractUsernameFromToken(String token) {
+        return jwtService.extractUsername(token);
+    }
 
+    public String getPublicKey() {
+        String publicKey = jwtService.getPublicKey();
+        if (publicKey != null) {
+            log.info("Successful operation of getting public key");
+            return publicKey;
+        } else {
+            log.error("Error: Get public key from database");
+            throw new NoSuchElementException();
+        }
+    }
 
 
 
@@ -157,5 +181,27 @@ public class GDatabaseService {
         log.info("Returning 4 entities from database");
         return orderItems;
     }
+
+
+
+
+
+    public void addItemToCart(String username ,OrderItem orderItem) {
+        User user = this.getUserByUsername(username);
+        user.getCart().add(orderItem);
+        this.saveUser(user);
+    }
+
+    public void deleteItemFromCart(String username ,OrderItem orderItem) {
+        User user = this.getUserByUsername(username);
+        user.getCart().remove(orderItem);
+        this.saveUser(user);
+    }
+
+    public List<OrderItem> getCart(String username) {
+        User user = this.getUserByUsername(username);
+        return user.getCart();
+    }
+
 
 }

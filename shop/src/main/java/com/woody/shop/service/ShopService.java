@@ -1,12 +1,10 @@
 package com.woody.shop.service;
 
-import com.woody.mydata.AuthRequest;
-import com.woody.mydata.Deliverer;
-import com.woody.mydata.Order;
-import com.woody.mydata.User;
+import com.woody.mydata.*;
 import com.woody.mydata.menu.OrderItem;
 import com.woody.mydata.token.TokenValidationException;
 import com.woody.shop.configuration.CustomResponseErrorHandler;
+import io.jsonwebtoken.io.Decoders;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.ast.Or;
@@ -16,11 +14,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Service
@@ -88,6 +93,19 @@ public class ShopService {
         if (responseUser.getStatusCode() == HttpStatus.OK) {
             return responseUser.getBody();
         } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public User findUserByUsername(String username) throws Exception {
+        log.info("Find user by username operation started");
+        HttpEntity<Void> request = new HttpEntity<>(tokenService.getHeaders());
+        ResponseEntity <User> responseUser  = accessDB.exchange("/user/user_name/" + username , HttpMethod.GET, request, User.class);
+        if (responseUser.getStatusCode() == HttpStatus.OK) {
+            log.info("User by username founded");
+            return responseUser.getBody();
+        } else {
+            log.error("User by username not founded");
             throw new NoSuchElementException();
         }
     }
@@ -202,6 +220,122 @@ public class ShopService {
             //System.out.println("token new: " + responseToken.getBody());
             return responseToken.getBody();
         } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+
+
+    private PublicKey convertStringToPublicKey(String publicKeyAsString, String algorithm) throws Exception {
+        byte [] publicKeyAsBytes = Decoders.BASE64.decode(publicKeyAsString);
+        KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+        X509EncodedKeySpec x509EncodedKeySpec=new X509EncodedKeySpec(publicKeyAsBytes);
+        log.info("Public key: {}", x509EncodedKeySpec);
+        return keyFactory.generatePublic(x509EncodedKeySpec);
+    }
+
+    public Key getPublicKey() throws Exception {
+        HttpEntity<Void> request = new HttpEntity<>(tokenService.getHeaders());
+        ResponseEntity <String> response  = accessDB.exchange("/publicKey" , HttpMethod.GET, request, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            String publicKeyString = response.getBody();
+            PublicKey publicKey = convertStringToPublicKey(publicKeyString, "RSA");
+            tokenService.setPublicKey(publicKey);
+            return publicKey;
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+
+
+    public String verifyToken(String token) {
+        try {
+            getPublicKey();
+            log.info("Verifying token : " + token);
+            HttpHeaders tokenHeaders = new HttpHeaders();
+            log.info("Headers initialized");
+            tokenHeaders.set("Authorization", "Bearer " + token);
+            log.info("Token is set in headers: " + tokenHeaders.get("Authorization"));
+            HttpEntity<Void> request = new HttpEntity<>(tokenHeaders);
+            log.info("Request is created");
+            ResponseEntity <String> response = accessDB.exchange("/auth/validate", HttpMethod.GET, request, String.class);
+            log.info("Response is received : " + response.getBody());
+            log.info("Token is valid");
+            return response.getBody();
+        } catch (NoSuchElementException e) {
+            log.error("Token is not valid | " + e.getMessage());
+            throw new NoSuchElementException();
+        }
+        catch (Exception e) {
+            log.error("Token is not valid | " + e.getMessage());
+            throw new NoSuchElementException();
+
+        }
+//        else {
+//            log.error("Token is not valid");
+//            throw new NoSuchElementException();
+//            //System.out.println("Token is not valid");
+//        }
+    }
+
+    public String extractUsernameFromToken(String token) throws Exception {
+        log.info("Extracting username from token");
+        HttpEntity<String> request = new HttpEntity<>(token, tokenService.getHeaders());
+        ResponseEntity <String> response = accessDB.exchange("/token/username" , HttpMethod.POST, request, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            log.info("Token username is extracted");
+            return response.getBody();
+        } else {
+            log.error("Token username is not extracted");
+            throw new Exception("Token username is not extracted");
+        }
+    }
+
+
+
+
+    public void addItemToCart(String username ,OrderItem orderItem) throws Exception {
+        log.info("Adding item to cart");
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("username", username);
+        requestBody.put("orderItem", orderItem);
+
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, tokenService.getHeaders());
+        ResponseEntity <String> response = accessDB.exchange("/cart/add" , HttpMethod.POST, request, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            log.info("Item added to cart");
+        } else {
+            log.error("Item not added to cart");
+            throw new Exception("Item not added to cart");
+        }
+    }
+
+    public void deleteItemFromCart(String username ,OrderItem orderItem) throws Exception {
+        log.info("Deleting item from cart");
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("username", username);
+        requestBody.put("orderItem", orderItem);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, tokenService.getHeaders());
+        ResponseEntity <String> response = accessDB.exchange("/cart/delete" , HttpMethod.DELETE, request, String.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            log.info("Item deleted from cart");
+        } else {
+            log.error("Item not deleted from cart");
+            throw new Exception("Item not deleted from cart");
+        }
+    }
+
+    public List<OrderItem> getCart(String username) {
+        log.info("Getting cart");
+        HttpEntity<Void> request = new HttpEntity<>(tokenService.getHeaders());
+        ResponseEntity <List<OrderItem>> responseUser  = accessDB.exchange("/cart/" + username , HttpMethod.GET, request, new ParameterizedTypeReference<List<OrderItem>>() {});
+        if (responseUser.getStatusCode() == HttpStatus.OK) {
+            return responseUser.getBody();
+        } else {
+            log.error("Cart is not found");
             throw new NoSuchElementException();
         }
     }

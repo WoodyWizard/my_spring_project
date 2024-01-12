@@ -1,21 +1,27 @@
 package com.woody.mydata;
 
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 
-public class UserDT implements UserDetails {
+@ToString
+public class UserDT implements UserDetails, Serializable {
 
-    private final User user;
+    private User user = new User();
     //private String username;
     //private String password;
+
+    public UserDT() {
+    }
 
     public UserDT(User user) {
         this.user = user;
@@ -57,5 +63,9 @@ public class UserDT implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public User getUser() {
+        return user;
     }
 }

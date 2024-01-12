@@ -1,15 +1,23 @@
 package com.woody.shop.service;
 
 import com.woody.mydata.AuthRequest;
+import io.jsonwebtoken.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.security.PublicKey;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -18,6 +26,8 @@ public class TokenService {
     private String token = null;
 
     private HttpHeaders headers = new HttpHeaders();
+
+    private PublicKey publicKey;
 
     @Autowired
     @Qualifier("TokenDatabaseRest")
@@ -36,6 +46,9 @@ public class TokenService {
     }
 
 
+    public void setPublicKey(PublicKey publicKey) {
+        this.publicKey = publicKey;
+    }
 
     @PostConstruct
     public void checkTokenAfterInit() {
@@ -85,7 +98,7 @@ public class TokenService {
             throw new Exception("Username or password not set");
         }
         AuthRequest authRequest = new AuthRequest(username, password);
-        ResponseEntity<String> response = tokenDB.postForEntity("/auth/token", authRequest, String.class);
+        ResponseEntity<String> response = tokenDB.exchange("/auth/token", HttpMethod.POST, new HttpEntity<>(authRequest), String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             log.info("Token is generated");
             token = response.getBody();
@@ -97,6 +110,32 @@ public class TokenService {
             log.error("Token not generated");
             throw new Exception("Token not generated");
         }
+    }
+
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts
+                .parser()
+                .setSigningKey(publicKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public List<GrantedAuthority> extractAuthorities(String token) {
+        List<String> roles = extractAllClaims(token).get("authorities", List.class);
+        return roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
+    }
+
+    public String extractUsername(String jwtToken) {
+        return extractClaim(jwtToken, Claims::getSubject);
     }
 
 }

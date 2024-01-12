@@ -1,10 +1,7 @@
 package com.woody.gdatabase.controller;
 
 import com.woody.gdatabase.service.GDatabaseService;
-import com.woody.mydata.AuthRequest;
-import com.woody.mydata.Deliverer;
-import com.woody.mydata.Order;
-import com.woody.mydata.User;
+import com.woody.mydata.*;
 import com.woody.mydata.menu.OrderItem;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -18,10 +15,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @RestController
 @AllArgsConstructor
@@ -38,20 +39,36 @@ public class GDatabaseController {
         return ResponseEntity.ok("Hello");
     }
 
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping("/publicKey")
+    public ResponseEntity<String> getPublicKey() {
+        try {
+            log.info("Token Operation (getPublicKey)");
+            return ResponseEntity.ok(gDatabaseService.getPublicKey());
+        } catch (Exception e) {
+            log.error(" /publicKey : Exception");
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/auth/token")
     public ResponseEntity<String> generateToken(@RequestBody AuthRequest authRequest) {
         try {
             log.info("Token Operation (AuthRequest): " , authRequest);
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
             if (authentication.isAuthenticated()) {
-                log.info("Successful operation of generating token");
-                return ResponseEntity.ok(gDatabaseService.generateToken(authRequest.getUsername()));
+                log.info("authentication.isAuthenticated()");
+                log.info("Trying to get UserDT");
+                UserDT userDT = (UserDT) gDatabaseService.getUserDetailsByUsername(authRequest.getUsername());
+                log.info("UserDT : " + userDT);
+                log.info("Trying to generateToken");
+                return ResponseEntity.ok(gDatabaseService.generateToken(authRequest.getUsername(), userDT));
             } else {
                 log.error(" /auth/token : error of authentication");
                 return ResponseEntity.badRequest().body("Error of authentication");
             }
         } catch (Exception e) {
-            log.error(" /auth/token : Exception");
+            log.error(" /auth/token : Exception : " + e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -60,13 +77,34 @@ public class GDatabaseController {
     public ResponseEntity<String> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
         try {
             log.info("Token validation operation started");
+            log.info("Authorization header : " + authorizationHeader);
             String token = authorizationHeader.substring(7);
+            log.info("Token extracted : " + token);
+            String username = gDatabaseService.extractUsernameFromToken(token);
+            log.info("Token username extracted: " + username);
             gDatabaseService.validateToken(token);
-            log.info("Token validation successful");
-            return ResponseEntity.ok("Valid");
-        } catch (Exception e) {
-            log.error("Token validation isn't successful * : ", authorizationHeader.substring(7));
+            ResponseEntity<String> responseEntity = ResponseEntity.ok().body(token);
+            return responseEntity;
+        } catch (NoSuchElementException e) {
+            log.error("Token validation isn't successful * : " + authorizationHeader.substring(7));
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Token validation isn't successful * : " + authorizationHeader.substring(7) + " : " + e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @PostMapping("/token/username")
+    public ResponseEntity<String> getUsernameFromToken(@RequestBody String token) {
+        try {
+            log.info("Token username extraction operation started");
+            String username = gDatabaseService.extractUsernameFromToken(token);
+            log.info("Token extracted");
+            return ResponseEntity.ok().body(username);
+        } catch (Exception e) {
+            log.error("Token username extraction isn't successful * : ", token);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -92,6 +130,21 @@ public class GDatabaseController {
         try {
             log.info("User getting operation started");
             return ResponseEntity.ok(gDatabaseService.getUserById(id));
+        } catch (NoSuchElementException e) {
+            log.error("User are not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("User getting operation EXCEPTION");
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping("/user/user_name/{username}")
+    public ResponseEntity<User> findUserByUsername(@PathVariable("username") String username) {
+        try {
+            log.info("User getting operation started");
+            return ResponseEntity.ok(gDatabaseService.getUserByUsername(username));
         } catch (NoSuchElementException e) {
             log.error("User are not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -233,5 +286,64 @@ public class GDatabaseController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+
+
+
+
+
+
+
+
+
+    @PreAuthorize("hasAuthority('admin')")
+    @PostMapping("/cart/add")
+    public ResponseEntity<String> addToCart(@RequestBody Map<String, Object> requestBody) {
+        try {
+            String username = (String) requestBody.get("username");
+            OrderItem orderItem = (OrderItem) requestBody.get("orderItem");
+
+            log.info("OrderItem saving operation started");
+            gDatabaseService.addItemToCart(username, orderItem);
+            return ResponseEntity.ok().body("OK");
+        } catch (Exception e) {
+            log.error("OrderItem saving operation failed");
+            return ResponseEntity.internalServerError().build();
+        }
+
+    }
+
+
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping("/cart/{username}")
+    public ResponseEntity<List<OrderItem>> getCart(@PathVariable("username") String username) {
+        try {
+            log.info("Get cart started");
+            return ResponseEntity.ok(gDatabaseService.getCart(username));
+        } catch (NoSuchElementException e) {
+            log.error("Cart is not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("CART EXCEPTION");
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @DeleteMapping("/cart/delete")
+    public ResponseEntity<String> deleteFromCart(@RequestBody Map<String, Object> requestBody) {
+        try {
+            log.info("OrderItem deleting operation started");
+            String username = (String) requestBody.get("username");
+            OrderItem orderItem = (OrderItem) requestBody.get("orderItem");
+
+            gDatabaseService.deleteItemFromCart(username, orderItem);
+            return ResponseEntity.ok().body("OK");
+        } catch (Exception e) {
+            log.error("OrderItem deleting operation failed");
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 
 }

@@ -41,6 +41,22 @@ public class ShopController {
         }
     }
 
+    @PostMapping("/verifyToken")
+    public ResponseEntity<String> verifyToken(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            log.info("Verify token operation started");
+            String token = authorizationHeader.substring(7);
+            shopService.verifyToken(token);
+            return ResponseEntity.ok().body("Token is valid");
+        } catch (NoSuchElementException e) {
+            log.error("Token is invalid");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("Something went wrong");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
 
 
     @GetMapping("/user/{id}")
@@ -48,6 +64,34 @@ public class ShopController {
         try {
             log.info("Get user operation started");
             return ResponseEntity.ok().body(shopService.findUserById(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
+    @GetMapping("/user/user_name/{username}")
+    public ResponseEntity<User> getUserByUsername(@PathVariable("username") String username) {
+        try {
+            log.info("Get user by USERNAME operation started");
+            return ResponseEntity.ok().body(shopService.findUserByUsername(username));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
+    @GetMapping("/user/getMe")
+    public ResponseEntity<User> getMe(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            log.info("Get ME operation started | authorizationHeader : " + authorizationHeader);
+            String token = authorizationHeader.substring(7);
+            String username = shopService.extractUsernameFromToken(token);
+            return ResponseEntity.ok().body(shopService.findUserByUsername(username));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -157,6 +201,23 @@ public class ShopController {
             log.info("GET slider operation");
             List<OrderItem> sliderItems = shopService.getSliderItems();
             return ResponseEntity.ok().body(sliderItems);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
+
+
+    @GetMapping("/cart")
+    public ResponseEntity<List<OrderItem>> getCart(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            log.info("GET cart operation");
+            String token = authorizationHeader.substring(7);
+            String username = shopService.extractUsernameFromToken(token);
+            List<OrderItem> cartItems = shopService.getCart(username);
+            return ResponseEntity.ok().body(cartItems);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {

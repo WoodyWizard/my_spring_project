@@ -1,12 +1,13 @@
 package com.woody.mydata;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 
@@ -14,7 +15,8 @@ import java.util.Set;
 @Getter
 @Setter
 @Table(name = "authority_entity")
-public class Authority {
+@NoArgsConstructor
+public class Authority implements GrantedAuthority ,Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,4 +26,9 @@ public class Authority {
     @ManyToMany(mappedBy = "authorities")
     @JsonIgnore
     private List<User> users;
+
+    @Override
+    public String getAuthority() {
+        return name;
+    }
 }
