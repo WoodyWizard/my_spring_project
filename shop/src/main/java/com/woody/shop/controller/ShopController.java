@@ -19,7 +19,7 @@ import java.util.NoSuchElementException;
 
 @RestController
 @AllArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST})
 @Slf4j
 public class ShopController {
 
@@ -225,4 +225,20 @@ public class ShopController {
         }
     }
 
+    @PostMapping("/cart/{itemId}")
+    public ResponseEntity<OrderItem> addToCart(@PathVariable("itemId") Long itemId, @RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            log.info("POST cart operation");
+            String token = authorizationHeader.substring(7);
+            String username = shopService.extractUsernameFromToken(token);
+            OrderItem response = shopService.addToCart(username, itemId);
+            return ResponseEntity.ok().body(response);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 Internal Server Error
+        }
+    }
+
 }
+

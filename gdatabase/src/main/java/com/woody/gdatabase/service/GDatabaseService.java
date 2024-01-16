@@ -137,7 +137,7 @@ public class GDatabaseService {
 
 
 
-    public String generateToken(String username, UserDT userDT) {
+    public String generateToken(String username, UserDT userDT) throws Exception {
         log.info("Generating token");
         return jwtService.generateToken(new HashMap<>() , username, userDT.getAuthorities());
     }
@@ -204,4 +204,14 @@ public class GDatabaseService {
     }
 
 
+    public OrderItem getOrderItemById(Long itemId) {
+        Optional<OrderItem> orderItemOptional = itemRepository.findById(itemId);
+        if (orderItemOptional.isPresent()) {
+            log.info("OrderItem has been found");
+            return orderItemOptional.get();
+        } else {
+            log.error("Error: Get OrderItem from database");
+            throw new NoSuchElementException();
+        }
+    }
 }

@@ -126,14 +126,14 @@ public class JWTService {
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         byte[] keyBytes = Decoders.BASE64.decode(jwtPrivateKey);
         PKCS8EncodedKeySpec pkcs8EncodedKeySpec=new PKCS8EncodedKeySpec(keyBytes);
-        log.info("Private key: {}", pkcs8EncodedKeySpec);
+        //log.info("Private key: {}", pkcs8EncodedKeySpec);
         return keyFactory.generatePrivate(pkcs8EncodedKeySpec);
     }
     public PublicKey generatePublicKey(String jwtPublicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         byte[] keyBytes = Decoders.BASE64.decode(jwtPublicKey);
         X509EncodedKeySpec x509EncodedKeySpec=new X509EncodedKeySpec(keyBytes);
-        log.info("Public key: {}", x509EncodedKeySpec);
+        //log.info("Public key: {}", x509EncodedKeySpec);
         return keyFactory.generatePublic(x509EncodedKeySpec);
     }
 
@@ -141,7 +141,8 @@ public class JWTService {
 //        return publicKey;
 //    }
 
-    public String generateToken(Map<String, Object> extraClaims, String username, Collection<? extends GrantedAuthority> authorities) {
+    public String generateToken(Map<String, Object> extraClaims, String username, Collection<? extends GrantedAuthority> authorities) throws Exception {
+
         log.info("Generating token");
         List<String> authoritiesList = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
@@ -161,9 +162,14 @@ public class JWTService {
         Token newToken = new Token();
         newToken.setToken(token);
         newToken.setOwner(username);
-        log.info("Saving new token");
-        tokenRepository.save(newToken);
-        log.info("Token is saved");
+        if (!tokenRepository.findByToken(token).isPresent()) {
+            log.info("Saving new token");
+            tokenRepository.save(newToken);
+            log.info("Token is saved");
+        } else {
+            log.info("Token already exists");
+            throw new Exception("Token already exists");
+        }
         return token;
     }
 

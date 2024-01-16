@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 @RestController
 @AllArgsConstructor
 @EnableMethodSecurity
+@CrossOrigin(origins = {"https://localhost:8082" , "http://localhost:5173", "http://localhost:8082"}, allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST})
 @Slf4j
 public class GDatabaseController {
 
@@ -298,14 +299,17 @@ public class GDatabaseController {
 
     @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/cart/add")
-    public ResponseEntity<String> addToCart(@RequestBody Map<String, Object> requestBody) {
+    public ResponseEntity<OrderItem> addToCart(@RequestBody Map<String, String> requestBody) {
         try {
-            String username = (String) requestBody.get("username");
-            OrderItem orderItem = (OrderItem) requestBody.get("orderItem");
-
+            log.info("OrderItem saving operation started");
+            String username = requestBody.get("username");
+            log.info(username);
+            OrderItem orderItem = gDatabaseService.getOrderItemById(Long.valueOf(requestBody.get("itemId")));
+            log.info("Item is presented in database: " + orderItem.toString());
             log.info("OrderItem saving operation started");
             gDatabaseService.addItemToCart(username, orderItem);
-            return ResponseEntity.ok().body("OK");
+            log.info("OrderItem saving operation finished");
+            return ResponseEntity.ok().body(orderItem);
         } catch (Exception e) {
             log.error("OrderItem saving operation failed");
             return ResponseEntity.internalServerError().build();

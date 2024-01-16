@@ -339,4 +339,19 @@ public class ShopService {
             throw new NoSuchElementException();
         }
     }
+
+    public OrderItem addToCart(String username, Long itemId) {
+        log.info("Adding item to cart");
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("username", username);
+        requestBody.put("itemId", String.valueOf(itemId));
+        HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, tokenService.getHeaders());
+        ResponseEntity <OrderItem> response = accessDB.exchange("/cart/add" , HttpMethod.POST, request, OrderItem.class);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            return response.getBody();
+        } else {
+            log.error("Item not added to cart");
+            throw new NoSuchElementException();
+        }
+    }
 }
