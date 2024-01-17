@@ -1,0 +1,25 @@
+
+server:
+    port: 6001
+
+
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: shopRoute
+          uri: lb://shop
+          predicates:
+            - Path=/shop/**
+          filters:
+            - StripPrefix=1
+  application:
+    name: gateway
+
+eureka:
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://localhost:6002/eureka

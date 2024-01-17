@@ -26,6 +26,11 @@ public class ShopController {
     private ShopService shopService;
 
 
+    @GetMapping("/shop/hello")
+    public String hello() {
+        return "Hello";
+    }
+
 
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody AuthRequest authRequest) {

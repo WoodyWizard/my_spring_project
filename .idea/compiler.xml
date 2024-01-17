@@ -11,6 +11,8 @@
         <module name="shop" />
         <module name="gdatabase" />
         <module name="mydata" />
+        <module name="gateway" />
+        <module name="eureka" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -21,6 +23,8 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="delivery" options="-parameters" />
+      <module name="eureka" options="-parameters" />
+      <module name="gateway" options="-parameters" />
       <module name="gdatabase" options="-parameters" />
       <module name="mydata" options="-parameters" />
       <module name="shared-data" options="-parameters" />

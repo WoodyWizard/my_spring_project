@@ -10,5 +10,7 @@
         <module>delivery</module>
         <module>shop</module>
         <module>gdatabase</module>
+        <module>gateway</module>
+        <module>eureka</module>
     </modules>
 </project>
