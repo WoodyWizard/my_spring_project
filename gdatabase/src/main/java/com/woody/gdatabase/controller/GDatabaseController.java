@@ -1,5 +1,6 @@
 package com.woody.gdatabase.controller;
 
+import com.woody.gdatabase.serializer.UserSerializer;
 import com.woody.gdatabase.service.GDatabaseService;
 import com.woody.mydata.*;
 import com.woody.mydata.menu.OrderItem;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,6 +36,9 @@ public class GDatabaseController {
     private GDatabaseService gDatabaseService;
 
     private AuthenticationManager authenticationManager;
+
+    private KafkaTemplate<String, Order> kafkaTemplateOrder;
+    private KafkaTemplate<String, User> kafkaTemplateUser;
 
     @GetMapping("/hello")
     public ResponseEntity<String> hello() {
@@ -125,12 +130,20 @@ public class GDatabaseController {
         }
     }
 
+    public void sendUserToKafka(User user) {
+        log.info("User sending to Kafka");
+        kafkaTemplateUser.send("user", user);
+        log.info("User sent to Kafka");
+    }
+
     @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/user/{id}")
     public ResponseEntity<User> findUserById(@PathVariable("id") Long id) {
         try {
-            log.info("User getting operation started");
-            return ResponseEntity.ok(gDatabaseService.getUserById(id));
+            //UserSerializer  userSerializer = new UserSerializer();
+            log.info("User getting by id operation started | id : " + id);
+            User user = gDatabaseService.getUserById(id);
+            return ResponseEntity.ok(user);
         } catch (NoSuchElementException e) {
             log.error("User are not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -144,8 +157,12 @@ public class GDatabaseController {
     @GetMapping("/user/user_name/{username}")
     public ResponseEntity<User> findUserByUsername(@PathVariable("username") String username) {
         try {
+            UserSerializer  userSerializer = new UserSerializer();
             log.info("User getting operation started");
-            return ResponseEntity.ok(gDatabaseService.getUserByUsername(username));
+            User user = gDatabaseService.getUserByUsername(username);
+            //log.info("Serialize user : " + userSerializer.serializeToByteArray(user));
+            sendUserToKafka(user);
+            return ResponseEntity.ok(user);
         } catch (NoSuchElementException e) {
             log.error("User are not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
