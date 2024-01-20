@@ -160,8 +160,6 @@ public class GDatabaseController {
             UserSerializer  userSerializer = new UserSerializer();
             log.info("User getting operation started");
             User user = gDatabaseService.getUserByUsername(username);
-            //log.info("Serialize user : " + userSerializer.serializeToByteArray(user));
-            sendUserToKafka(user);
             return ResponseEntity.ok(user);
         } catch (NoSuchElementException e) {
             log.error("User are not found");
